@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package speechkit.tts.v3;
+
+message ContainerAudio {
+  enum ContainerAudioType {
+    CONTAINER_AUDIO_TYPE_UNSPECIFIED = 0;
+    OGG_OPUS = 2;
+  }
+  ContainerAudioType container_audio_type = 1;
+}
+
+message AudioFormatOptions {
+  ContainerAudio container_audio = 2;
+}
+
+message AudioChunk {
+  bytes data = 1;
+}
+
+message SynthesisOptions {
+  string voice = 2;
+  string role = 3;
+  double speed = 4;
+  AudioFormatOptions output_audio_spec = 7;
+}
+
+message SynthesisInput {
+  string text = 1;
+}
+
+message ForceSynthesisEvent {}
+
+message StreamSynthesisRequest {
+  oneof Event {
+    SynthesisOptions options = 1;
+    SynthesisInput synthesis_input = 2;
+    ForceSynthesisEvent force_synthesis = 3;
+  }
+}
+
+message StreamSynthesisResponse {
+  AudioChunk audio_chunk = 1;
+}
+
+service Synthesizer {
+  rpc StreamSynthesis(stream StreamSynthesisRequest) returns (stream StreamSynthesisResponse);
+}

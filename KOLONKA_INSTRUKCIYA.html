@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Инструкция — умная колонка</title>
+  <style>
+    :root {
+      --bg: #080b10;
+      --surface: #111722;
+      --surface2: #182030;
+      --line: #2a384c;
+      --text: #eef2f8;
+      --muted: #8fa0b8;
+      --accent: #4d9bff;
+      --accent2: #7c5cff;
+      --ok: #45e0a0;
+      --warn: #ffc857;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 1.25rem 1rem 2rem;
+      max-width: 540px;
+      margin: 0 auto;
+    }
+    .hero {
+      text-align: center;
+      padding: 1.5rem 0 1.25rem;
+    }
+    .hero-icon {
+      font-size: 2.5rem;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .sub {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin-top: 0.35rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 1.1rem 1.15rem;
+      margin-bottom: 0.9rem;
+    }
+    .card-accent {
+      border-color: #3d5a8a;
+      background: linear-gradient(145deg, #121a28 0%, #151f30 100%);
+    }
+    h2 {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+    h2 span { color: var(--accent); }
+    p { margin-bottom: 0.55rem; }
+    p:last-child { margin-bottom: 0; }
+    ol, ul { padding-left: 1.2rem; }
+    li { margin-bottom: 0.5rem; }
+    li:last-child { margin-bottom: 0; }
+    .hint {
+      color: var(--muted);
+      font-size: 0.86rem;
+      margin-top: 0.6rem;
+    }
+    .tag {
+      display: inline-block;
+      background: var(--surface2);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 0.1rem 0.45rem;
+      font-size: 0.82rem;
+      font-family: ui-monospace, "Cascadia Code", monospace;
+      color: var(--ok);
+    }
+    .url {
+      display: block;
+      background: var(--surface2);
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      padding: 0.7rem 0.85rem;
+      font-size: 0.9rem;
+      word-break: break-all;
+      margin: 0.55rem 0;
+      color: var(--ok);
+      text-decoration: none;
+    }
+    a.url:hover { border-color: var(--accent); }
+    .url-muted { color: var(--muted); font-family: ui-monospace, monospace; font-size: 0.82rem; }
+    .wake-box {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.55rem;
+      margin: 0.75rem 0;
+    }
+    .wake-item {
+      background: var(--surface2);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 0.85rem 0.5rem;
+      text-align: center;
+    }
+    .wake-item b {
+      display: block;
+      font-size: 1.15rem;
+      color: var(--accent);
+      margin-bottom: 0.2rem;
+    }
+    .wake-item small { color: var(--muted); font-size: 0.78rem; }
+    .examples {
+      list-style: none;
+      padding: 0;
+      margin-top: 0.65rem;
+    }
+    .examples .tag { font-size: 0.82rem; vertical-align: baseline; }
+    .examples li {
+      background: var(--surface2);
+      border-left: 3px solid var(--accent2);
+      border-radius: 0 8px 8px 0;
+      padding: 0.45rem 0.65rem;
+      margin-bottom: 0.4rem;
+      font-size: 0.9rem;
+    }
+    .step {
+      display: flex;
+      gap: 0.65rem;
+      margin-bottom: 0.65rem;
+      align-items: flex-start;
+    }
+    .step:last-child { margin-bottom: 0; }
+    .step-n {
+      flex-shrink: 0;
+      width: 1.5rem;
+      height: 1.5rem;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 50%;
+      font-size: 0.78rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 0.1rem;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid var(--line);
+      margin: 0.75rem 0;
+    }
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.76rem;
+      margin-top: 1.25rem;
+      line-height: 1.5;
+    }
+    @media print {
+      body { background: #fff; color: #111; padding: 0.5rem; }
+      .card { border-color: #bbb; background: #f6f6f6; break-inside: avoid; }
+      .card-accent { background: #eef3ff; }
+      .url, .tag { color: #064; border-color: #999; background: #eee; }
+      .wake-item b { color: #035; }
+      .hint, .sub, footer, h2 { color: #444; }
+    }
+    @media (max-width: 360px) {
+      .wake-box { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="hero-icon">🎙</div>
+    <h1>Умная колонка</h1>
+    <p class="sub">Инструкция для первого включения</p>
+  </header>
+
+  <!-- Wi-Fi -->
+  <section class="card">
+    <h2><span>01</span> · Подключение к Wi-Fi</h2>
+
+    <div class="step"><span class="step-n">1</span><span>Вставьте шнур питания. Подождите <strong>1–2 минуты</strong> — колонка загрузится.</span></div>
+    <div class="step"><span class="step-n">2</span><span>На телефоне: <strong>Настройки → Wi-Fi</strong>.</span></div>
+    <div class="step"><span class="step-n">3</span><span>Выберите сеть <span class="tag">Kolonka-Setup</span> — пароль не нужен.</span></div>
+    <div class="step"><span class="step-n">4</span><span>Откроется страница настройки. Выберите <strong>ваш домашний Wi-Fi</strong> и введите пароль.</span></div>
+    <div class="step"><span class="step-n">5</span><span>Колонка перезагрузится и подключится к вашей сети.</span></div>
+
+    <p class="hint">Страница не открылась? В браузере введите <span class="tag">192.168.4.1</span> — это адрес настройки, он одинаковый у всех колонок.</p>
+  </section>
+
+  <!-- Панель -->
+  <section class="card">
+    <h2><span>02</span> · Панель управления</h2>
+    <p>Телефон или ноутбук должен быть в <strong>той же Wi-Fi сети</strong>, что и колонка.</p>
+
+    <p class="hint">Откройте в браузере:</p>
+    <a class="url" href="http://kolonka.local:8765">http://kolonka.local:8765</a>
+
+    <p class="hint">Не открывается? Зайдите в приложение роутера, найдите устройство <strong>kolonka</strong> и откройте:</p>
+    <p class="url url-muted">http://&lt;IP-колонки&gt;:8765</p>
+
+    <p class="hint">В панели: громкость, LED, чат, музыка, настройки. Пароль не нужен.</p>
+  </section>
+
+  <!-- Wake words -->
+  <section class="card card-accent">
+    <h2><span>03</span> · Как говорить с колонкой</h2>
+
+    <p>Сначала скажите имя — короткий <strong>бип</strong> означает, что колонка слушает. Затем команду.</p>
+
+    <div class="wake-box">
+      <div class="wake-item">
+        <b>Айдана</b>
+        <small>основное имя</small>
+      </div>
+      <div class="wake-item">
+        <b>Дворецкий</b>
+        <small>альтернатива</small>
+      </div>
+    </div>
+
+    <p class="hint">Можно в одной фразе, без паузы:</p>
+    <ul class="examples">
+      <li>«Айдана, какая погода?»</li>
+      <li>«Дворецкий, какая погода в [город]?»</li>
+      <li>«Дворецкий, включи музыку»</li>
+      <li>«Айдана, громче»</li>
+      <li>«Дворецкий, выключи музыку»</li>
+      <li>«Айдана, запомни что я люблю кофе»</li>
+    </ul>
+  </section>
+
+  <!-- Что умеет -->
+  <section class="card">
+    <h2><span>04</span> · Что умеет</h2>
+    <ul>
+      <li><strong>Погода</strong> — «какая погода?», «какая погода в [город]?», «будет дождь завтра?»</li>
+      <li><strong>Вопросы</strong> — новости, «как дела», любые другие вопросы</li>
+      <li><strong>Музыка</strong> — «включи [исполнитель или песня]»</li>
+      <li><strong>Громкость</strong> — «громче», «тише», «громкость 50»</li>
+      <li><strong>Память</strong> — «запомни, что …» · сброс: «забудь всё»</li>
+    </ul>
+    <p class="hint">Простые вопросы — около <strong>4–6 секунд</strong> до ответа. Погода и поиск в интернете — дольше (~15 с).</p>
+  </section>
+
+  <!-- Проблемы -->
+  <section class="card">
+    <h2><span>05</span> · Если что-то не так</h2>
+    <ul>
+      <li><strong>Нет сети Kolonka-Setup</strong> — выключите колонку из розетки, включите снова, подождите 2 мин.</li>
+      <li><strong>Не слышит</strong> — говорите чётко, ближе к колонке, без фоновой музыки.</li>
+      <li><strong>kolonka.local не открывается</strong> — используйте IP из роутера (шаг 02).</li>
+      <li><strong>Нужен другой Wi-Fi</strong> — панель → вкладка «Ещё» → «Сброс Wi-Fi». Колонка снова создаст Kolonka-Setup.</li>
+    </ul>
+  </section>
+
+  <footer>
+    Адрес колонки в сети: <strong>kolonka.local</strong> · порт <strong>8765</strong><br>
+    IP зависит от вашего роутера — в инструкции он не указан намеренно.
+  </footer>
+
+</body>
+</html>

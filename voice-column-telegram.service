@@ -1,0 +1,17 @@
+[Unit]
+Description=Voice Column Telegram Bot
+After=network-online.target voice-column-wake.service voice-column-ui.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/voice_column
+EnvironmentFile=-/home/pi/voice_column/.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /home/pi/voice_column/telegram_bot.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

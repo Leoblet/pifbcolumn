@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0e14">
+  <title>Колонка</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="top">
+      <div class="top-brand">
+        <div class="orb-mini" id="orb-mini" aria-hidden="true"></div>
+        <div>
+          <h1>Колонка</h1>
+          <p class="top-sub" id="host-label">voice-column</p>
+        </div>
+      </div>
+      <div class="pill" id="status-pill">…</div>
+    </header>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="home" role="tab">Главная</button>
+      <button class="tab" data-tab="chat" role="tab">Чат</button>
+      <button class="tab" data-tab="more" role="tab">Ещё</button>
+    </nav>
+
+    <main class="panels">
+      <!-- Главная -->
+      <section class="panel active" id="panel-home" role="tabpanel">
+        <div class="hero">
+          <div class="ring-wrap">
+            <div class="ring" id="led-ring" aria-hidden="true"></div>
+            <div class="ring-core">
+              <span class="ring-label" id="ring-label">—</span>
+              <span class="ring-hint" id="ring-hint">статус</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ctrl-grid">
+          <div class="ctrl">
+            <div class="ctrl-head">
+              <span>🔊 Громкость</span>
+              <strong id="volume-val">—</strong>
+            </div>
+            <input type="range" id="volume" min="0" max="100" value="90">
+          </div>
+          <div class="ctrl">
+            <div class="ctrl-head">
+              <span>💡 LED</span>
+              <strong id="led-val">—</strong>
+            </div>
+            <input type="range" id="led" min="0" max="100" value="35">
+          </div>
+        </div>
+
+        <div class="quick">
+          <button class="chip demo-chip" id="btn-demo" title="Сценарий презентации">🎭 Демо</button>
+          <button class="chip" id="btn-restart">↻ Перезапуск</button>
+          <button class="chip" id="btn-stop-music">♪ Стоп музыку</button>
+          <button class="chip" id="btn-test">🔔 Тест голоса</button>
+          <button class="chip warn" id="btn-clear-mem">🗑 Забыть всё</button>
+        </div>
+
+        <form class="music-form" id="music-form">
+          <input type="text" id="music-input" placeholder="Включи — исполнитель или трек…" autocomplete="off">
+          <button type="submit" class="btn-send" title="Играть">▶</button>
+        </form>
+
+        <div class="stats" id="stats"></div>
+
+        <div class="demo-pipe hidden" id="demo-pipe" aria-live="polite">
+          <div class="demo-title">Freedom Station · pipeline</div>
+          <div class="demo-steps" id="demo-steps"></div>
+          <div class="demo-last" id="demo-last"></div>
+        </div>
+      </section>
+
+      <!-- Чат -->
+      <section class="panel" id="panel-chat" role="tabpanel">
+        <div class="chat-log" id="chat-log"></div>
+        <form class="chat-form" id="chat-form">
+          <input type="text" id="chat-input" placeholder="Спроси колонку…" autocomplete="off">
+          <button type="submit" class="btn-send" title="Спросить LLM">↑</button>
+        </form>
+        <p class="hint">Музыка: «включи Мэдkid» · Вопросы: «как дела?» · Wake word работает параллельно.</p>
+      </section>
+
+      <!-- Ещё -->
+      <section class="panel" id="panel-more" role="tabpanel">
+        <div class="card" id="setup-card">
+          <h2>Wi-Fi и передача</h2>
+          <p class="hint" id="setup-wifi">—</p>
+          <div class="url-box setup-url" id="setup-url" hidden></div>
+          <p class="hint" id="setup-mdns" hidden></p>
+          <div class="row-btns">
+            <button class="btn primary" id="btn-copy-url" type="button">📋 Копировать ссылку</button>
+            <a class="btn" id="btn-setup-page" href="/setup" target="_blank" rel="noopener">Инструкция</a>
+          </div>
+          <button class="btn danger" id="btn-wifi-reset" type="button" style="width:100%;margin-top:0.75rem">
+            Сброс Wi-Fi (новый владелец)
+          </button>
+          <p class="hint">После сброса колонка создаст сеть <strong>Kolonka-Setup</strong> — подключите телефон и выберите домашний Wi-Fi.</p>
+        </div>
+
+        <div class="card">
+          <h2>Память</h2>
+          <ul class="facts" id="facts-list"></ul>
+          <p class="hint empty-hint" id="facts-empty">Фактов пока нет. Скажи: «запомни, что …»</p>
+        </div>
+
+        <div class="card">
+          <h2>Сервис</h2>
+          <div class="row-btns">
+            <button class="btn" id="btn-start">▶ Старт</button>
+            <button class="btn" id="btn-stop">⏹ Стоп</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Настройки</h2>
+          <div class="settings" id="settings"></div>
+          <button class="btn primary" id="btn-save-env">Сохранить</button>
+        </div>
+
+        <div class="card">
+          <div class="log-head">
+            <h2>Лог</h2>
+            <label class="chk"><input type="checkbox" id="log-auto" checked> авто</label>
+          </div>
+          <pre class="log" id="log"></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div class="toast" id="toast"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

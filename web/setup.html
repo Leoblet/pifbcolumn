@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a0e14">
+  <title>Настройка колонки</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .setup-hero { text-align: center; padding: 1.5rem 0; }
+    .setup-hero h1 { font-size: 1.35rem; margin-bottom: 0.5rem; }
+    .url-box {
+      background: var(--surface2);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 1rem;
+      word-break: break-all;
+      font-size: 0.95rem;
+      margin: 1rem 0;
+    }
+    .steps { text-align: left; margin: 1rem 0; padding-left: 1.2rem; line-height: 1.7; }
+    .steps li { margin-bottom: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="setup-hero">
+      <h1>🎙 Колонка — настройка</h1>
+      <p class="hint" id="state">Загрузка…</p>
+    </div>
+
+    <div class="card">
+      <h2>Первое включение (нет Wi-Fi)</h2>
+      <ol class="steps">
+        <li>Включите колонку в розетку, подождите ~1 мин.</li>
+        <li>На телефоне откройте Wi-Fi → сеть <strong>Kolonka-Setup</strong>.</li>
+        <li>Откроется страница — выберите домашний Wi-Fi и введите пароль.</li>
+        <li>Колонка перезагрузится и подключится к вашей сети.</li>
+      </ol>
+    </div>
+
+    <div class="card" id="panel-box" hidden>
+      <h2>Панель управления</h2>
+      <p class="hint">Откройте в браузере (телефон / ноутбук в той же Wi-Fi):</p>
+      <div class="url-box" id="ui-url">—</div>
+      <p class="hint" id="mdns-hint"></p>
+      <button class="btn primary" id="btn-open" style="width:100%;margin-top:0.5rem">Открыть панель</button>
+    </div>
+
+    <div class="card">
+      <h2>Wake word</h2>
+      <p class="hint">Скажите: <strong>«Айдана»</strong> или <strong>«Дворецкий»</strong>, затем команду.</p>
+    </div>
+  </div>
+  <script>
+    fetch('/api/setup').then(r => r.json()).then(d => {
+      const st = document.getElementById('state');
+      if (d.wifi_connected) {
+        st.textContent = 'Wi-Fi: ' + (d.ssid || 'подключено');
+        document.getElementById('panel-box').hidden = false;
+        document.getElementById('ui-url').textContent = d.ui_url || '—';
+        if (d.ui_url_mdns) {
+          document.getElementById('mdns-hint').textContent = 'Или: ' + d.ui_url_mdns;
+        }
+        document.getElementById('btn-open').onclick = () => {
+          if (d.ui_url) location.href = d.ui_url;
+        };
+      } else {
+        st.textContent = 'Wi-Fi не подключён — используйте Kolonka-Setup';
+      }
+    }).catch(() => {
+      document.getElementById('state').textContent = 'Нет связи с колонкой';
+    });
+  </script>
+</body>
+</html>

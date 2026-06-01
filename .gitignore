@@ -1,0 +1,33 @@
+# Секреты и конфиги с ключами
+.env
+*.env
+
+# Кэш и рантайм данные
+music_cache.json
+user_memory.json
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Виртуальные окружения
+venv_spotify/
+venv/
+.venv/
+
+# Vosk модель (большой файл, скачивается отдельно)
+vosk-model*/
+
+# Системные файлы
+.lgd-nfy0
+*.pipe
+*.sock
+
+# Временные файлы
+/tmp/
+*.tmp
+*.log
+
+# IDE
+.vscode/
+.idea/

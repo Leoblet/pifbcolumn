@@ -120,6 +120,7 @@ class MusicController:
                 log('Музыка громче')
 
     def stop(self):
+        was_playing = self.is_playing()
         self._stop.set()
         t = self._thread
         if t and t.is_alive():
@@ -127,6 +128,13 @@ class MusicController:
         self._stop.clear()
         self._thread = None
         self._title = ''
+        if was_playing:
+            try:
+                from demo_scenario import enabled as _dme_st, demo_stage as _dst_st
+                if _dme_st():
+                    _dst_st('MUSIC_STOP', 'остановлена', log_fn=lambda m: print(m, flush=True))
+            except Exception:
+                pass
         try:
             from led_status import led_idle_if_no_music
             led_idle_if_no_music()
@@ -157,6 +165,13 @@ class MusicController:
         self._stop.clear()
         self._title = title
         self._led_music()
+        try:
+            from demo_scenario import enabled as _dme_m, demo_stage as _dst_m
+            if _dme_m():
+                import os as _os
+                _dst_m('MUSIC_START', f'▶ {title[:60]}', log_fn=lambda m: print(m, flush=True))
+        except Exception:
+            pass
         self._thread = threading.Thread(
             target=self._run_file,
             args=(path, alsa_device),
@@ -181,7 +196,7 @@ class MusicController:
             [
                 'aplay', '-q', '-D', alsa_device,
                 '-f', 'S16_LE', '-r', '44100', '-c', '2',
-                '--period-size=1024', '--buffer-size=32768',
+                '--period-size=512', '--buffer-size=4096',
             ],
             stdin=subprocess.PIPE,
             stdout=subprocess.DEVNULL,
@@ -196,6 +211,7 @@ class MusicController:
                 vol = self._volume()
                 if vol < 0.99:
                     chunk = _scale_pcm(chunk, vol)
+
                 ap.stdin.write(chunk)
             ap.stdin.close()
             ap.wait(timeout=5)
@@ -212,11 +228,9 @@ class MusicController:
     def _run_file(self, path: str, alsa_device: str):
         ext = os.path.splitext(path)[1].lower()
         if ext == '.mp3':
+            # mpg123 стартует ~50мс vs ffmpeg ~400мс
             ff = subprocess.Popen(
-                [
-                    'ffmpeg', '-hide_banner', '-loglevel', 'error',
-                    '-i', path, '-vn', '-f', 's16le', '-ar', '44100', '-ac', '2', 'pipe:1',
-                ],
+                ['mpg123', '-q', '-s', '--rate', '44100', '--stereo', path],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL,
             )
@@ -581,7 +595,7 @@ def _stream_url(url: str, alsa_device: str = 'default') -> bool:
         [
             'aplay', '-q', '-D', alsa_device,
             '-f', 'S16_LE', '-r', '44100', '-c', '2',
-            '--period-size=1024', '--buffer-size=32768',
+            '--period-size=512', '--buffer-size=4096',
         ],
         stdin=ff.stdout,
         stdout=subprocess.DEVNULL,

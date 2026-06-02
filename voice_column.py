@@ -1247,8 +1247,9 @@ def speak_yandex(text, t_question=None):
             t_question=t_question, log_fn=log,
         )
     except (RuntimeError, OSError, TimeoutError) as e:
-        log(f'Yandex TTS: {e}, fallback → edge')
-        speak_edge(text, t_question=t_question)
+        log(f'Yandex TTS: {e}, fallback → edge отключён')
+        if os.environ.get('VC_TTS_EDGE_FALLBACK', '1').lower() not in ('0', 'false', 'no'):
+            speak_edge(text, t_question=t_question)
 
 
 def speak_text(text, t_question=None):
@@ -1639,6 +1640,19 @@ def handle_command(text, t_question=None, *, speak=True, long_reply_telegram=Non
         if demo_enabled():
             register_cached_phrases()
             demo_stage('STT', text, log_fn=log)
+            # Стоп/громкость музыки — всегда проходят, до try_demo
+            try:
+                from music_player import is_stop_music_command as _is_stop, stop_music as _stop_music
+                if _is_stop(text):
+                    _stop_music()
+                    log('⚡ demo: стоп музыка')
+                    if speak and speak_command:
+                        speak_command('stop_music', 'Остановил.', alsa_device=_playback_device(), t_question=t_question, log_fn=log)
+                    log(f'Готово за {time.time() - t0:.1f}s')
+                    _led()
+                    return True
+            except ImportError:
+                pass
             hit = try_demo(text, log_fn=log)
             if hit:
                 from music_player import stop_music as _demo_stop_music
@@ -1654,11 +1668,19 @@ def handle_command(text, t_question=None, *, speak=True, long_reply_telegram=Non
                     blob = _json.dumps(hit.api_json, ensure_ascii=False)
                     log(f'[demo] JSON: {blob}')
                     demo_stage('API', blob[:240], log_fn=log)
+                # Запускаем музыку параллельно с TTS — не ждём конца речи
+                _music_bg_result = [None]
+                if hit.start_music:
+                    try:
+                        from music_player import start_music_by_query as _demo_start_music
+                        import threading as _mth
+                        def _music_bg():
+                            _music_bg_result[0] = _demo_start_music(hit.start_music, ALSA_DEVICE or 'default')
+                        _mth.Thread(target=_music_bg, daemon=True).start()
+                    except ImportError:
+                        pass
                 if speak:
-                    _demo_long = hit.key in ('holding', 'holding_after_stop', 'portfolio')
-                    if _demo_long:
-                        speak_text(reply, t_question=t_question)
-                    elif speak_command and hit.tts_key:
+                    if speak_command and hit.tts_key:
                         speak_command(
                             hit.tts_key, reply,
                             alsa_device=_playback_device(), t_question=t_question, log_fn=log,
@@ -1666,17 +1688,13 @@ def handle_command(text, t_question=None, *, speak=True, long_reply_telegram=Non
                     else:
                         speak_text(reply, t_question=t_question)
                     demo_stage('TTS', '✓', log_fn=log)
-                if hit.start_music:
-                    try:
-                        from music_player import start_music_by_query as _demo_start_music
-                        ok, mmsg = _demo_start_music(hit.start_music, ALSA_DEVICE or 'default')
-                        if ok:
-                            log(f'[demo] ▶ music: {mmsg}')
-                            demo_stage('API', f'▶ {mmsg}', log_fn=log)
-                        else:
-                            log(f'[demo] music fail: {mmsg}')
-                    except ImportError:
-                        pass
+                if hit.start_music and _music_bg_result[0] is not None:
+                    ok, mmsg = _music_bg_result[0]
+                    if ok:
+                        log(f'[demo] ▶ music: {mmsg}')
+                        demo_stage('API', f'▶ {mmsg}', log_fn=log)
+                    else:
+                        log(f'[demo] music fail: {mmsg}')
                 _save_cmd_reply(reply)
                 if mem:
                     mem.add_turn(text, reply)
@@ -1684,6 +1702,19 @@ def handle_command(text, t_question=None, *, speak=True, long_reply_telegram=Non
                 log(f'Готово за {time.time() - t0:.1f}s')
                 _led()
                 return True
+            # Стоп музыка работает даже в демо-режиме
+            try:
+                from music_player import is_stop_music_command as _is_stop, stop_music as _stop_music
+                if _is_stop(text):
+                    _stop_music()
+                    log('⚡ demo: стоп музыка')
+                    if speak and speak_command:
+                        speak_command('stop_music', 'Остановил.', alsa_device=_playback_device(), t_question=t_question, log_fn=log)
+                    log(f'Готово за {time.time() - t0:.1f}s')
+                    _led()
+                    return True
+            except ImportError:
+                pass
             miss_key, miss = demo_miss_reply(text)
             demo_stage('LLM', f'нет в сценарии: {text[:80]}', log_fn=log)
             if speak:
@@ -1832,6 +1863,12 @@ def one_turn(strip_wake=False, stream=None, pa=None, chunk=1024, discard_guard=0
             live = _open_live_stt()
         t_turn = time.time()
         # Deepgram WS уже открыт — параллельно с drain_guard
+        try:
+            from demo_scenario import enabled as _dme_r, demo_stage as _dst_r
+            if _dme_r():
+                _dst_r('RECORD', 'запись...', log_fn=log)
+        except Exception:
+            pass
         pcm = record_pcm(
             stream=stream, pa=pa, chunk=chunk,
             max_sec=WAKE_RECORD_SEC if stream else RECORD_SEC,
@@ -1844,9 +1881,25 @@ def one_turn(strip_wake=False, stream=None, pa=None, chunk=1024, discard_guard=0
             if live:
                 live.abort()
             log('Речь не услышана')
+            try:
+                from demo_scenario import enabled as _dme_ns, demo_stage as _dst_ns
+                if _dme_ns():
+                    _dst_ns('STT', 'тишина — не услышала', log_fn=log)
+            except Exception:
+                pass
             _led()
             return False
 
+        rec_dur = time.time() - t_turn
+        try:
+            from demo_scenario import enabled as _dme_s, demo_stage as _dst_s
+            if _dme_s():
+                import array as _arr
+                _pcm_arr = _arr.array('h'); _pcm_arr.frombytes(pcm)
+                _rms = int((sum(x*x for x in _pcm_arr) / max(len(_pcm_arr), 1)) ** 0.5)
+                _dst_s('STT_START', f'запись {rec_dur:.1f}s  rms={_rms}', log_fn=log)
+        except Exception:
+            pass
         t_stt = time.time()
         text = ''
         stt_dur = 0.0
@@ -1890,6 +1943,12 @@ def one_turn(strip_wake=False, stream=None, pa=None, chunk=1024, discard_guard=0
             stt_dur = time.time() - t_stt
         if not text:
             log('Не распознано')
+            try:
+                from demo_scenario import enabled as _dme_nh, demo_stage as _dst_nh
+                if _dme_nh():
+                    _dst_nh('STT', f'не распознано  rms={max_rms:.0f}', log_fn=log)
+            except Exception:
+                pass
             _led()
             try:
                 from command_fast import speak_command
@@ -1960,6 +2019,159 @@ def _drain_web_command():
         daemon=True,
     ).start()
 
+
+
+def deepgram_wake_loop():
+    """Wake word через Deepgram streaming STT - faster than Vosk."""
+    from deepgram_wake import DeepgramWakeDetector
+
+    _led_init()
+    _led('idle')
+    log(f'Wake word (Deepgram): {", ".join(WAKE_PHRASES)}')
+    log('Скажите: «Айдана» / «Дворецкий»')
+
+    idx = get_mic_index()
+    if idx is None:
+        raise RuntimeError('Микрофон не найден')
+
+    def _warm(full=False):
+        try:
+            from stream_pipeline import warm_pipeline
+            warm_pipeline(log, full_tts=full)
+        except Exception as e:
+            log(f'Прогрев: {e}')
+
+    import threading as _threading
+    _threading.Thread(target=lambda: _warm(full=True), daemon=True).start()
+    _ensure_ack_wav()
+    _ensure_speaker_route(force=True)
+
+    last_wake = [0.0]
+
+    def on_wake(wake_word, trailing):
+        now = time.time()
+        if now - last_wake[0] < WAKE_COOLDOWN:
+            detector.resume()
+            return
+        last_wake[0] = now
+        log(f'Wake (DG): {wake_word}')
+        _led('wake')
+
+        try:
+            from demo_scenario import enabled as demo_enabled, demo_wake_start
+            if demo_enabled():
+                demo_wake_start(wake_word, log_fn=log)
+        except ImportError:
+            pass
+
+        cmd = trailing  # текст команды после вейк-ворда (если был)
+        _chunk = int(os.environ.get('VC_WAKE_CHUNK', '1024'))
+        # Останавливаем детектор — он держит микрофон
+        detector.pause()
+        time.sleep(0.15)
+        try:
+            with _music_duck_context():
+                pa_ref, stream_ref = [None], [None]
+                if cmd and len(cmd) >= 2:
+                    with _mic_released(pa_ref, stream_ref, idx, _chunk, fast=True):
+                        play_wake_ack(skip_route=True)
+                        _led('listen')
+                    try:
+                        from demo_scenario import enabled as _dme2, demo_stage as _dst2
+                        if _dme2():
+                            _dst2('LISTEN', f'inline: {cmd[:60]}', log_fn=log)
+                    except ImportError:
+                        pass
+                    log(f'⚡ inline cmd: {cmd!r}')
+                    handle_command(cmd, t_question=time.time())
+                else:
+                    live_pre = [None]
+                    if _stt_stream_enabled():
+                        import threading as _th
+                        _th.Thread(
+                            target=lambda: live_pre.__setitem__(0, _open_live_stt()),
+                            daemon=True,
+                        ).start()
+                    with _mic_released(pa_ref, stream_ref, idx, _chunk, fast=True):
+                        play_wake_ack(skip_route=True)
+                        _led('listen')
+                    try:
+                        from demo_scenario import enabled as _dme, demo_stage as _dst
+                        if _dme():
+                            _dst('LISTEN', 'слушаю...', log_fn=log)
+                    except ImportError:
+                        pass
+                    stream, pa = stream_ref[0], pa_ref[0]
+                    one_turn(
+                        strip_wake=True,
+                        stream=stream,
+                        pa=pa,
+                        chunk=_chunk,
+                        discard_guard=POST_ACK_GUARD,
+                        pa_ref=pa_ref,
+                        stream_ref=stream_ref,
+                        mic_idx=idx,
+                        live_pre=live_pre if _stt_stream_enabled() else None,
+                    )
+                    # Talk mode — микрофон не закрываем, просто дрейним эхо
+                    try:
+                        from demo_scenario import enabled as _demo_en
+                        _talk_n = int(os.environ.get('VC_DEMO_TALK_TURNS', '0'))
+                        if _demo_en() and _talk_n > 0:
+                            for _ti in range(_talk_n):
+                                _st = stream_ref[0]
+                                _pa = pa_ref[0]
+                                if not _st or not _pa:
+                                    break
+                                # Смываем эхо TTS: 350мс (было 200мс)
+                                _drain_mic(_st, _chunk, 0.35)
+                                # Бип — сигнал пользователю (mic открыт, full-duplex)
+                                play_wake_ack(skip_route=True)
+                                # Смываем эхо бипа + дополнительный settle
+                                _drain_mic(_st, _chunk, 0.20)
+                                _led('listen')
+                                try:
+                                    from demo_scenario import demo_stage as _dst3
+                                    _dst3('LISTEN', f'тёрн {_ti + 2}', log_fn=log)
+                                except Exception:
+                                    pass
+                                _ok = one_turn(
+                                    strip_wake=False,
+                                    stream=_st,
+                                    pa=_pa,
+                                    chunk=_chunk,
+                                    discard_guard=POST_ACK_GUARD,
+                                    pa_ref=pa_ref,
+                                    stream_ref=stream_ref,
+                                    mic_idx=idx,
+                                )
+                                if not _ok:
+                                    break
+                    except Exception as _te:
+                        log(f'talk mode: {_te}')
+                log('Ответ OK')
+        except Exception as e:
+            log(f'Ошибка: {e}')
+            _led('error')
+            _led()
+
+        detector.resume()
+
+    detector = DeepgramWakeDetector(
+        wake_phrases=WAKE_PHRASES,
+        on_wake=on_wake,
+        mic_index=idx,
+        lang='ru',
+        log_fn=log,
+    )
+    detector.start()
+
+    try:
+        while True:
+            time.sleep(1)
+            _drain_web_command()
+    finally:
+        detector.stop()
 
 def wake_loop():
     """Wake word через Vosk grammar + fuzzy match."""
@@ -2190,7 +2402,11 @@ def main():
 
     if args.wake:
         try:
-            wake_loop()
+            engine = os.environ.get('VC_WAKE_ENGINE', 'vosk').lower()
+            if engine == 'deepgram':
+                deepgram_wake_loop()
+            else:
+                wake_loop()
         except KeyboardInterrupt:
             print()
         return

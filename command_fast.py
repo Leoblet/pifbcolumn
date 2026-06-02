@@ -74,7 +74,16 @@ def _synth_wav(key: str, text: str, log_fn=None) -> str | None:
     wav_path = str(CMD_DIR / f'{key}.wav')
     prof = tts_profile(get_turn_lang())
     try:
-        ogg = synthesize_ogg(text, voice=prof['voice'], emotion=prof['role'], lang=prof['lang'])
+        # Для длинных текстов используем gRPC стриминг
+        if len(text) > 300:
+            try:
+                from yandex_tts_stream import iter_synthesize_ogg
+                chunks = list(iter_synthesize_ogg(text, prof['voice'], prof['role'], prof['lang']))
+                ogg = b''.join(chunks) if chunks else b''
+            except Exception:
+                ogg = synthesize_ogg(text, voice=prof['voice'], emotion=prof['role'], lang=prof['lang'])
+        else:
+            ogg = synthesize_ogg(text, voice=prof['voice'], emotion=prof['role'], lang=prof['lang'])
     except Exception as exc:
         if log_fn:
             log_fn(f'cmd cache {key}: {exc}')
